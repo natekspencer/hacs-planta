@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host"
+        }
+      },
+      "reauth_confirm": {
+        "data": {}
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_host": "Invalid hostname or IP address",
+      "timeout_connect": "Timeout establishing connection",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid authentication"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "growing_medium": {
+        "name": "Growing medium",
+        "state": {
+          "notSet": "Unknown",
+          "allPurposePottingMix": "All purpose potting mix",
+          "cactusPalmCitrusSoil": "Cactus, palm & citrus soil",
+          "cactusSoil": "Cactus & succulent soil",
+          "carnivoresPlantMix": "Carnivores plant mix",
+          "coconutCoirOrPeat": "Coconut Coir or Peat",
+          "pottingSoilAndDrainage": "Potting soil + extra drainage",
+          "semiHydro": "Semi-hydro (pon, leca, etc)",
+          "tropicalSoil": "Tropical soil",
+          "water": "Water"
+        }
+      },
+      "health": {
+        "name": "Health",
+        "state": {
+          "notSet": "Unknown",
+          "poor": "Poor",
+          "fair": "Fair",
+          "good": "Good",
+          "veryGood": "Very good",
+          "excellent": "Excellent"
+        }
+      },
+      "last_watering": { "name": "Last watering" },
+      "pot_size": { "name": "Pot size" },
+      "pot_type": {
+        "name": "Pot type",
+        "state": {
+          "potGlass": "Glass pot",
+          "potOriginalPlastic": "Original plastic pot from store",
+          "potPlastic": "Plastic pot",
+          "potPorcelain": "Porcelain / stoneware ceramic",
+          "potRectangular": "Rectangular planters",
+          "potTerracotta": "Terracotta / earthenware ceramic",
+          "other": "Other pots"
+        }
+      },
+      "scheduled_watering": { "name": "Scheduled watering" },
+      "size": { "name": "Size" }
+    }
+  }
+}

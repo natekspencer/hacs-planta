@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "email": "[%key:common::config_flow::data::email%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      },
+      "reconfigure": {
+        "data": {
+          "host": "[%key:common::config_flow::data::host%]"
+        }
+      },
+      "reauth_confirm": {
+        "data": {}
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_host": "[%key:common::config_flow::error::invalid_host%]",
+      "timeout_connect": "[%key:common::config_flow::error::timeout_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "email": "[%key:common::config_flow::data::email%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "growing_medium": {
+        "name": "Growing medium",
+        "state": {
+          "notSet": "Unknown",
+          "allPurposePottingMix": "All purpose potting mix",
+          "cactusPalmCitrusSoil": "Cactus, palm & citrus soil",
+          "cactusSoil": "Cactus & succulent soil",
+          "carnivoresPlantMix": "Carnivores plant mix",
+          "coconutCoirOrPeat": "Coconut Coir or Peat",
+          "pottingSoilAndDrainage": "Potting soil + extra drainage",
+          "semiHydro": "Semi-hydro (pon, leca, etc)",
+          "tropicalSoil": "Tropical soil",
+          "water": "Water"
+        }
+      },
+      "health": {
+        "name": "Health",
+        "state": {
+          "notSet": "Unknown",
+          "poor": "Poor",
+          "fair": "Fair",
+          "good": "Good",
+          "veryGood": "Very good",
+          "excellent": "Excellent"
+        }
+      },
+      "last_watering": { "name": "Last watering" },
+      "pot_size": { "name": "Pot size" },
+      "pot_type": {
+        "name": "Pot type",
+        "state": {
+          "potGlass": "Glass pot",
+          "potOriginalPlastic": "Original plastic pot from store",
+          "potPlastic": "Plastic pot",
+          "potPorcelain": "Porcelain / stoneware ceramic",
+          "potRectangular": "Rectangular planters",
+          "potTerracotta": "Terracotta / earthenware ceramic",
+          "other": "Other pots"
+        }
+      },
+      "scheduled_watering": { "name": "Scheduled watering" },
+      "size": { "name": "Size" }
+    }
+  }
+}

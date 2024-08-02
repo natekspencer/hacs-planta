@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import logging
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -18,6 +19,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import PlantaConfigEntry
 from .coordinator import PlantaCoordinator
 from .entity import PlantaEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 PLANT_HEALTH_LIST = ["notset", "poor", "fair", "good", "verygood", "excellent"]
 
@@ -143,9 +146,12 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
             value = self.plant[self.entity_description.field]
         if self.device_class == SensorDeviceClass.TIMESTAMP:
             return datetime.fromisoformat(value)
+        if isinstance(value, str):
+            value = value.lower()
         if self.device_class == SensorDeviceClass.ENUM and value not in self.options:
-            return None
-        return value.lower() if isinstance(value, str) else value
+            _LOGGER.warning("%s has an unknown value: %s", self.name, value)
+            self.entity_description.options.append(value)
+        return value
 
 
 class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):

@@ -19,7 +19,7 @@ from . import PlantaConfigEntry
 from .coordinator import PlantaCoordinator
 from .entity import PlantaEntity
 
-PLANT_HEALTH_LIST = ["notSet", "poor", "fair", "good", "veryGood", "excellent"]
+PLANT_HEALTH_LIST = ["notset", "poor", "fair", "good", "verygood", "excellent"]
 
 
 async def async_setup_entry(
@@ -145,7 +145,7 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
             return datetime.fromisoformat(value)
         if self.device_class == SensorDeviceClass.ENUM and value not in self.options:
             return None
-        return value
+        return value.lower() if isinstance(value, str) else value
 
 
 class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):

@@ -103,7 +103,8 @@ class Planta:
         async with self._lock:
             if self._is_token_valid():
                 return
-            self._client.headers.pop("Authorization")
+            if "Authorization" in self._client.headers:
+                self._client.headers.pop("Authorization")
             resp = await self._request(
                 "POST",
                 "https://securetoken.googleapis.com/v1/token",

@@ -84,7 +84,8 @@
         }
       },
       "scheduled_watering": { "name": "Scheduled watering" },
-      "size": { "name": "Size" }
+      "size": { "name": "Size" },
+      "time_since_last_watering": { "name": "Time since last watering" }
     }
   }
 }

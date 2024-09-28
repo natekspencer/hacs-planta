@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 
 from homeassistant.components.sensor import (
@@ -12,12 +12,13 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import EntityCategory, UnitOfLength
+from homeassistant.const import EntityCategory, UnitOfLength, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 
 from . import PlantaConfigEntry
-from .coordinator import PlantaCoordinator
+from .coordinator import PlantaCoordinator, PlantaPlantCoordinator
 from .entity import PlantaEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,6 +119,16 @@ HISTORY_DESCRIPTORS = (
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_watering",
+        field="watering",
+        translation_key="time_since_last_watering",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
 )
 
 
@@ -158,10 +169,21 @@ class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):
     """Planta history sensor entity."""
 
     entity_description: PlantaSensorEntityDescription
+    coordinator: PlantaPlantCoordinator
 
     async def async_added_to_hass(self) -> None:
         self._handle_coordinator_update()
         await super().async_added_to_hass()
+        if self.entity_description.device_class == SensorDeviceClass.DURATION:
+            self.async_on_remove(
+                async_track_time_interval(
+                    self.hass, self._update_entity_state, timedelta(minutes=15)
+                )
+            )
+
+    async def _update_entity_state(self, now: datetime | None = None) -> None:
+        """Update the state of the entity."""
+        self._handle_coordinator_update()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -170,4 +192,8 @@ class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):
             return
         value = self.coordinator.data["stats"][self.entity_description.field]["latest"]
         self._attr_native_value = datetime.fromisoformat(value) if value else None
+        if self.entity_description.device_class == SensorDeviceClass.DURATION:
+            self._attr_native_value = (
+                datetime.now(timezone.utc) - self._attr_native_value
+            ).total_seconds()
         super()._handle_coordinator_update()

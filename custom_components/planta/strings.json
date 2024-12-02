@@ -69,6 +69,7 @@
           "excellent": "Excellent"
         }
       },
+      "last_fertilizing": { "name": "Last fertilizing" },
       "last_watering": { "name": "Last watering" },
       "pot_size": { "name": "Pot size" },
       "pot_type": {
@@ -83,8 +84,10 @@
           "other": "Other pots"
         }
       },
+      "scheduled_fertilizing": { "name": "Scheduled fertilizing" },
       "scheduled_watering": { "name": "Scheduled watering" },
       "size": { "name": "Size" },
+      "time_since_last_fertilizing": { "name": "Time since last fertilizing" },
       "time_since_last_watering": { "name": "Time since last watering" }
     }
   }

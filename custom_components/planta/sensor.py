@@ -68,6 +68,13 @@ DESCRIPTORS = (
         options=PLANT_HEALTH_LIST,
     ),
     PlantaSensorEntityDescription(
+        key="scheduled_fertilizing",
+        field="fertilizing",
+        is_action=True,
+        translation_key="scheduled_fertilizing",
+        device_class=SensorDeviceClass.TIMESTAMP,
+    ),
+    PlantaSensorEntityDescription(
         key="scheduled_watering",
         field="watering",
         is_action=True,
@@ -113,11 +120,28 @@ DESCRIPTORS = (
 )
 HISTORY_DESCRIPTORS = (
     PlantaSensorEntityDescription(
+        key="last_fertilizing",
+        field="fertilizing",
+        translation_key="last_fertilizing",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    PlantaSensorEntityDescription(
         key="last_watering",
         field="watering",
         translation_key="last_watering",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_fertilizing",
+        field="fertilizing",
+        translation_key="time_since_last_fertilizing",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     PlantaSensorEntityDescription(
         key="time_since_last_watering",
@@ -138,7 +162,12 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
     entity_description: PlantaSensorEntityDescription
 
     @property
-    def native_value(self) -> int | str | None:
+    def entity_registry_enabled_default(self) -> bool:
+        """Return if the entity should be enabled when first added to the entity registry."""
+        return self.native_value is not None
+
+    @property
+    def native_value(self) -> int | str | datetime | None:
         """Return the value reported by the sensor."""
         if not self.plant:
             return None
@@ -155,6 +184,8 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
             value = self.plant["environment"]["pot"][self.entity_description.field]
         else:
             value = self.plant[self.entity_description.field]
+        if value is None:
+            return value
         if self.device_class == SensorDeviceClass.TIMESTAMP:
             return datetime.fromisoformat(value)
         if isinstance(value, str):
@@ -171,10 +202,15 @@ class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):
     entity_description: PlantaSensorEntityDescription
     coordinator: PlantaPlantCoordinator
 
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Return if the entity should be enabled when first added to the entity registry."""
+        return self.native_value is not None
+
     async def async_added_to_hass(self) -> None:
         self._handle_coordinator_update()
         await super().async_added_to_hass()
-        if self.entity_description.device_class == SensorDeviceClass.DURATION:
+        if self.device_class == SensorDeviceClass.DURATION:
             self.async_on_remove(
                 async_track_time_interval(
                     self.hass, self._update_entity_state, timedelta(minutes=15)
@@ -190,9 +226,11 @@ class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):
         """Handle updated data from the coordinator."""
         if not self.coordinator.data:
             return
-        value = self.coordinator.data["stats"][self.entity_description.field]["latest"]
+        if not (field := self.coordinator.data["stats"][self.entity_description.field]):
+            return
+        value = field["latest"]
         self._attr_native_value = datetime.fromisoformat(value) if value else None
-        if self.entity_description.device_class == SensorDeviceClass.DURATION:
+        if self.device_class == SensorDeviceClass.DURATION:
             self._attr_native_value = (
                 datetime.now(timezone.utc) - self._attr_native_value
             ).total_seconds()

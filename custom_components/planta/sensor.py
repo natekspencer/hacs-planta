@@ -50,7 +50,7 @@ async def async_setup_entry(
 
 @dataclass(frozen=True, kw_only=True)
 class PlantaSensorEntityDescription(SensorEntityDescription):
-    """Planta sensor entity description"""
+    """Planta sensor entity description."""
 
     field: str
     is_action: bool = False
@@ -268,7 +268,7 @@ class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):
             return
         value = field["latest"]
         self._attr_native_value = datetime.fromisoformat(value) if value else None
-        if self.device_class == SensorDeviceClass.DURATION:
+        if self._attr_native_value and self.device_class == SensorDeviceClass.DURATION:
             self._attr_native_value = (
                 datetime.now(timezone.utc) - self._attr_native_value
             ).total_seconds()

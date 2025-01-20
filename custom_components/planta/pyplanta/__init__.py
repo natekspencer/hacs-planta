@@ -84,6 +84,23 @@ class Planta:
         )
         return result.get("data", {}).get("actions", [])
 
+    async def plant_action_complete(self, action_id: str) -> bool:
+        """Mark a plant action as completed."""
+        if not (
+            user_id := jwt.decode(
+                self.token["id_token"],
+                options={"verify_signature": False, "verify_exp": False},
+                leeway=-30,
+            ).get("user_id")
+        ):
+            return False
+        result = await self._request(
+            "POST",
+            f"{API_V1_ENDPOINT}/actions/complete",
+            json={"actions": [[action_id, user_id]]},
+        )
+        return result.get("status") == 200
+
     def _is_token_valid(self) -> bool:
         """Return `True` if the token is still valid."""
         if self.token is None:

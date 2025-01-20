@@ -20,6 +20,7 @@ type PlantaConfigEntry = ConfigEntry[PlantaCoordinator]
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [
+    Platform.BUTTON,
     Platform.IMAGE,
     Platform.SENSOR,
 ]

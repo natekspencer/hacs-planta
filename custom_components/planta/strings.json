@@ -42,6 +42,13 @@
     }
   },
   "entity": {
+    "button": {
+      "complete_cleaning": { "name": "Complete cleaning" },
+      "complete_fertilizing": { "name": "Complete fertilizing" },
+      "complete_misting": { "name": "Complete misting" },
+      "complete_repotting": { "name": "Complete repotting" },
+      "complete_watering": { "name": "Complete watering" }
+    },
     "sensor": {
       "growing_medium": {
         "name": "Growing medium",

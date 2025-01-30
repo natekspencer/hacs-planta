@@ -5,17 +5,14 @@ from __future__ import annotations
 import json
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import DOMAIN
-from .coordinator import PlantaCoordinator
+from .coordinator import PlantaConfigEntry, PlantaCoordinator
 from .pyplanta import Planta
-
-type PlantaConfigEntry = ConfigEntry[PlantaCoordinator]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlantaConfigEntry) -> bo
         token = json.loads(token)
 
     client = Planta(token=token, refresh_token_callback=async_save_refresh_token)
-    coordinator = PlantaCoordinator(hass, client)
+    coordinator = PlantaCoordinator(hass, entry, client)
 
     try:
         await coordinator.async_config_entry_first_refresh()

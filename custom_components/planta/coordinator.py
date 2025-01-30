@@ -8,6 +8,7 @@ from typing import Any
 
 import async_timeout
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -17,17 +18,24 @@ from .pyplanta import Planta
 
 _LOGGER = logging.getLogger(__name__)
 
+UPDATE_INTERVAL = timedelta(minutes=5)
+
+type PlantaConfigEntry = ConfigEntry[PlantaCoordinator]
+
 
 class PlantaCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     """Planta data update coordinator."""
 
-    def __init__(self, hass: HomeAssistant, client: Planta) -> None:
+    def __init__(
+        self, hass: HomeAssistant, config_entry: PlantaConfigEntry, client: Planta
+    ) -> None:
         """Initialize."""
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=DOMAIN,
-            update_interval=timedelta(minutes=5),
+            update_interval=UPDATE_INTERVAL,
             always_update=False,
         )
         self.client = client
@@ -72,6 +80,7 @@ class PlantaPlantCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=coordinator.config_entry,
             name=f"{DOMAIN} plant",
             always_update=False,
         )
@@ -84,7 +93,10 @@ class PlantaPlantCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @callback
     def schedule_refresh(self) -> None:
         """Schedule a refresh."""
-        if self.plant_data != (new_data := self.coordinator.get_plant(self.plant_id)):
+        if (
+            self.plant_data != (new_data := self.coordinator.get_plant(self.plant_id))
+            or not self.last_update_success
+        ):
             self.plant_data = new_data
             self.config_entry.async_create_background_task(
                 self.hass,
@@ -102,5 +114,7 @@ class PlantaPlantCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 state["images"] = await client.get_plant_images_and_notes(self.plant_id)
         except Exception as ex:
             _LOGGER.error(ex)
+            self.update_interval = UPDATE_INTERVAL
             raise UpdateFailed("Couldn't read from Planta") from ex
+        self.update_interval = None
         return state

@@ -10,8 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import PlantaConfigEntry
-from .coordinator import PlantaCoordinator
+from .coordinator import PlantaConfigEntry, PlantaCoordinator
 from .entity import PlantaEntity
 
 _LOGGER = logging.getLogger(__name__)

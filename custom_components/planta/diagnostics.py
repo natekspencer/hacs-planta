@@ -6,8 +6,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from . import PlantaConfigEntry
-from .coordinator import PlantaCoordinator
+from .coordinator import PlantaConfigEntry, PlantaCoordinator
 
 
 async def async_get_config_entry_diagnostics(

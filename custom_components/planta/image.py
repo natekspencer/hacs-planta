@@ -8,8 +8,7 @@ from homeassistant.components.image import ImageEntity, ImageEntityDescription
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import PlantaConfigEntry
-from .coordinator import PlantaPlantCoordinator
+from .coordinator import PlantaConfigEntry, PlantaPlantCoordinator
 from .entity import PlantaEntity
 
 

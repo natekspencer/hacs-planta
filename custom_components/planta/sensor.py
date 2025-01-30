@@ -17,8 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from . import PlantaConfigEntry
-from .coordinator import PlantaCoordinator, PlantaPlantCoordinator
+from .coordinator import PlantaConfigEntry, PlantaCoordinator, PlantaPlantCoordinator
 from .entity import PlantaEntity
 
 _LOGGER = logging.getLogger(__name__)

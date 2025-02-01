@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import logging
+from typing import Any
+
+from stringcase import snakecase
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -25,28 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 PLANT_HEALTH_LIST = ["notset", "poor", "fair", "good", "verygood", "excellent"]
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: PlantaConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up Planta sensors using config entry."""
-    coordinator: PlantaCoordinator = entry.runtime_data
-    entities = [
-        PlantaSensorEntity(coordinator, descriptor, plant["id"])
-        for plant in coordinator.data
-        for descriptor in DESCRIPTORS
-    ]
-
-    async_add_entities(entities)
-    entities = [
-        PlantaHistorySensorEntity(plant_coordinator, descriptor, plant_id)
-        for plant_id, plant_coordinator in coordinator.plant_coordinators.items()
-        for descriptor in HISTORY_DESCRIPTORS
-    ]
-    async_add_entities(entities, True)
-
-
 @dataclass(frozen=True, kw_only=True)
 class PlantaSensorEntityDescription(SensorEntityDescription):
     """Planta sensor entity description."""
@@ -54,6 +36,7 @@ class PlantaSensorEntityDescription(SensorEntityDescription):
     field: str
     is_action: bool = False
     is_pot: bool = False
+    extra_state_attributes_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
 DESCRIPTORS = (
@@ -79,6 +62,15 @@ DESCRIPTORS = (
         is_action=True,
         translation_key="scheduled_fertilizing",
         device_class=SensorDeviceClass.TIMESTAMP,
+        extra_state_attributes_fn=(
+            lambda plant_care: {
+                snakecase(key): value
+                for key, value in plant_care.items()
+                if "fertiliz" in key.lower()
+            }
+            if plant_care["useCustomFertilizing"]
+            else None
+        ),
     ),
     PlantaSensorEntityDescription(
         key="scheduled_misting",
@@ -100,6 +92,15 @@ DESCRIPTORS = (
         is_action=True,
         translation_key="scheduled_watering",
         device_class=SensorDeviceClass.TIMESTAMP,
+        extra_state_attributes_fn=(
+            lambda plant_care: {
+                snakecase(key): value
+                for key, value in plant_care.items()
+                if "watering" in key.lower()
+            }
+            if plant_care["useCustomWatering"]
+            else None
+        ),
     ),
     PlantaSensorEntityDescription(
         key="size",
@@ -193,6 +194,26 @@ HISTORY_DESCRIPTORS = (
 )
 
 
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: PlantaConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Planta sensors using config entry."""
+    coordinator: PlantaCoordinator = entry.runtime_data
+    entities = [
+        PlantaSensorEntity(coordinator, descriptor, plant["id"])
+        for plant in coordinator.data
+        for descriptor in DESCRIPTORS
+    ]
+    entities.extend(
+        PlantaHistorySensorEntity(plant_coordinator, descriptor, plant_id)
+        for plant_id, plant_coordinator in coordinator.plant_coordinators.items()
+        for descriptor in HISTORY_DESCRIPTORS
+    )
+    async_add_entities(entities, True)
+
+
 class PlantaSensorEntity(PlantaEntity, SensorEntity):
     """Planta sensor entity."""
 
@@ -231,6 +252,13 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
             _LOGGER.warning("%s has an unknown value: %s", self.name, value)
             self.entity_description.options.append(value)
         return value
+
+    @property
+    def extra_state_attributes(self):
+        """Return entity specific state attributes."""
+        if _fn := self.entity_description.extra_state_attributes_fn:
+            return _fn(self.plant["plantCare"]) or super().extra_state_attributes
+        return super().extra_state_attributes
 
 
 class PlantaHistorySensorEntity(PlantaEntity, SensorEntity):

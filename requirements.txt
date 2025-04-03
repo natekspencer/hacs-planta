@@ -10,4 +10,5 @@ stringcase==1.2.0
 # Development
 colorlog
 pip>=21.0
+pre-commit
 ruff

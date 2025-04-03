@@ -14,6 +14,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, CONF_TOKEN
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 from .pyplanta import Planta
@@ -79,7 +80,7 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Validate client setup."""
         errors = {}
         try:
-            client = Planta()
+            client = Planta(session=async_get_clientsession(self.hass))
             await client.login(user_input[CONF_EMAIL], user_input[CONF_PASSWORD])
             if not client.token:
                 errors["base"] = "invalid_auth"

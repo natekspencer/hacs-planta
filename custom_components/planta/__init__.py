@@ -8,6 +8,7 @@ import logging
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import DOMAIN
@@ -37,7 +38,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlantaConfigEntry) -> bo
     if isinstance(token := entry.data[CONF_TOKEN], str):
         token = json.loads(token)
 
-    client = Planta(token=token, refresh_token_callback=async_save_refresh_token)
+    client = Planta(
+        session=async_get_clientsession(hass),
+        token=token,
+        refresh_token_callback=async_save_refresh_token,
+    )
     coordinator = PlantaCoordinator(hass, entry, client)
 
     try:

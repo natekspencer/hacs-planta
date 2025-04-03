@@ -35,10 +35,11 @@ class Planta:
     ) -> None:
         """Initialize the client."""
         self._client = session if session else ClientSession()
-        self._client.headers.extend(CLIENT_VERSION_HEADER)
+        self._should_close = session is None
+        self._headers: dict[str, str] = CLIENT_VERSION_HEADER.copy()
         if token:
             self._token = token
-            self._client.headers["Authorization"] = f"Bearer {token['id_token']}"
+            self._headers["Authorization"] = f"Bearer {token['id_token']}"
         if refresh_token_callback:
             self._refresh_token_callback = refresh_token_callback
 
@@ -59,11 +60,13 @@ class Planta:
             "id_token": tokens["idToken"],
             "refresh_token": tokens["refreshToken"],
         }
-        self._client.headers["Authorization"] = f"Bearer {self._token['id_token']}"
+        self._headers["Authorization"] = f"Bearer {self._token['id_token']}"
 
     async def close(self) -> None:
         """Close the client."""
-        await self._client.close()
+        if self._should_close:
+            await self._client.close()
+            self._client = None
 
     async def get_plants(self) -> list[dict[str, Any]]:
         """Get plants."""
@@ -120,8 +123,8 @@ class Planta:
         async with self._lock:
             if self._is_token_valid():
                 return
-            if "Authorization" in self._client.headers:
-                self._client.headers.pop("Authorization")
+            if "Authorization" in self._headers:
+                self._headers.pop("Authorization")
             resp = await self._request(
                 "POST",
                 "https://securetoken.googleapis.com/v1/token",
@@ -133,7 +136,7 @@ class Planta:
             )
             self._token["id_token"] = resp["id_token"]
             self._token["refresh_token"] = resp["refresh_token"]
-            self._client.headers["Authorization"] = f"Bearer {self._token['id_token']}"
+            self._headers["Authorization"] = f"Bearer {self._token['id_token']}"
             if self._refresh_token_callback:
                 try:
                     self._refresh_token_callback(self.token)
@@ -149,7 +152,9 @@ class Planta:
 
         _LOGGER.debug("Making %s request to %s", method, url)
 
-        async with self._client.request(method, url, **kwargs) as resp:
+        async with self._client.request(
+            method, url, headers=self._headers, **kwargs
+        ) as resp:
             resp.raise_for_status()
             data = await resp.json()
             _LOGGER.debug("Received %s response from %s", resp.status, url)

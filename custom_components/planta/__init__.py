@@ -7,7 +7,7 @@ import logging
 
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
@@ -47,13 +47,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlantaConfigEntry) -> bo
 
     try:
         await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryAuthFailed:
+        raise
     except Exception as ex:
         _LOGGER.exception(ex)
 
     if not coordinator.data:
         raise ConfigEntryNotReady
 
-    coordinator.generate_plant_coordinators()
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -8,17 +8,17 @@ from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import PlantaCoordinator, PlantaPlantCoordinator
+from .coordinator import PlantaCoordinator
 
 
-class PlantaEntity(CoordinatorEntity[PlantaCoordinator | PlantaPlantCoordinator]):
+class PlantaEntity(CoordinatorEntity[PlantaCoordinator]):
     """Base class for Planta entities."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: PlantaCoordinator | PlantaPlantCoordinator,
+        coordinator: PlantaCoordinator,
         description: EntityDescription,
         plant_id: str,
     ) -> None:
@@ -27,20 +27,21 @@ class PlantaEntity(CoordinatorEntity[PlantaCoordinator | PlantaPlantCoordinator]
         self.entity_description = description
         self.plant_id = plant_id
 
+        # strip user id from plant_id
+        plant_id = plant_id.split(":")[-1]
+
         self._attr_unique_id = f"{plant_id}-{description.key}"
+        names = self.plant.get("names", {})
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, plant_id)},
-            name=self.plant["nameCustom"] or self.plant["plantName"],
+            name=names.get("custom") or names.get("localizedName"),
             manufacturer="Planta",
-            model=self.plant["nameScientific"]
-            + (f" '{variety}'" if (variety := self.plant["nameVariety"]) else ""),
+            model=names.get("scientific")
+            + (f" '{variety}'" if (variety := names.get("variety")) else ""),
             suggested_area=self.plant["site"]["name"],
         )
 
     @property
     def plant(self) -> dict[str, Any]:
         """Get plant data."""
-        coordinator = self.coordinator
-        if isinstance(self.coordinator, PlantaPlantCoordinator):
-            coordinator = coordinator.coordinator
-        return coordinator.get_plant(self.plant_id)
+        return self.coordinator.get_plant(self.plant_id)

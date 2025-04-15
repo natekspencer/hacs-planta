@@ -8,7 +8,7 @@ from homeassistant.components.image import ImageEntity, ImageEntityDescription
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import PlantaConfigEntry, PlantaPlantCoordinator
+from .coordinator import PlantaConfigEntry, PlantaCoordinator
 from .entity import PlantaEntity
 
 
@@ -18,12 +18,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Planta camera using config entry."""
+    coordinator: PlantaCoordinator = entry.runtime_data
     async_add_entities(
         [
-            PlantaImageEntity(plant_coordinator, IMAGE, plant_id)
-            for plant_id, plant_coordinator in entry.runtime_data.plant_coordinators.items()
-        ],
-        True,
+            PlantaImageEntity(coordinator, IMAGE, plant["id"])
+            for plant in coordinator.data
+        ]
     )
 
 
@@ -35,7 +35,7 @@ class PlantaImageEntity(PlantaEntity, ImageEntity):
 
     def __init__(
         self,
-        coordinator: PlantaPlantCoordinator,
+        coordinator: PlantaCoordinator,
         description: ImageEntityDescription,
         plant_id: str,
     ) -> None:
@@ -50,18 +50,12 @@ class PlantaImageEntity(PlantaEntity, ImageEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.coordinator.data or not self.coordinator.plant_data:
+        if not self.plant:
             return
-        url = self.coordinator.plant_data.get("defaultImage", {}).get("url")
-        if url != self._attr_image_url:
-            self._attr_image_last_updated = next(
-                (
-                    datetime.fromisoformat(action["completed"])
-                    for action in self.coordinator.data["images"]
-                    if action.get("images")
-                ),
-                None,
-            )
+        image = self.plant.get("image", {})
+        if (url := image.get("url")) != self._attr_image_url:
+            if last_updated := image.get("lastUpdated"):
+                self._attr_image_last_updated = datetime.fromisoformat(last_updated)
             self._attr_image_url = url
             self._cached_image = None
         super()._handle_coordinator_update()

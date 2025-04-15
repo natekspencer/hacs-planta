@@ -29,9 +29,8 @@ async def async_setup_entry(
             for plant in coordinator.data
             for descriptor in BUTTONS
             for action in plant["actions"]
-            if action["type"] == descriptor.field
-        ],
-        True,
+            if action == descriptor.field
+        ]
     )
 
 
@@ -51,7 +50,7 @@ BUTTONS = (
     PlantaButtonEntityDescription(
         key="complete_fertilizing",
         translation_key="complete_fertilizing",
-        field="fertilizingRecurring",
+        field="fertilizing",
     ),
     PlantaButtonEntityDescription(
         key="complete_misting",
@@ -78,18 +77,10 @@ class PlantaButtonEntity(PlantaEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle the button press."""
-        action_id = next(
-            (
-                action["id"]
-                for action in self.plant["actions"]
-                if action["type"] == self.entity_description.field
-            ),
-            None,
-        )
-        if not action_id:
+        if not self.plant_id or not (action := self.entity_description.field):
             raise ServiceValidationError(
                 f"{self.name} cannot be performed on {self.device_entry.name}"
             )
 
-        await self.coordinator.client.plant_action_complete(action_id)
+        await self.coordinator.client.plant_action_complete(self.plant_id, action)
         await self.coordinator.async_refresh()

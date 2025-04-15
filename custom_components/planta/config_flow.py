@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 import json
 import logging
 from typing import Any
@@ -12,8 +13,7 @@ from httpx import ConnectError, HTTPStatusError
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, CONF_TOKEN
-from homeassistant.core import callback
+from homeassistant.const import CONF_CODE, CONF_TOKEN
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
@@ -22,9 +22,7 @@ from .pyplanta import Planta
 _LOGGER = logging.getLogger(__name__)
 
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {vol.Required(CONF_EMAIL): str, vol.Required(CONF_PASSWORD): str}
-)
+STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_CODE): str})
 
 
 class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -32,7 +30,23 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    token: dict[str, Any] | None = None
+    tokens: dict[str, str] | None = None
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle a reauthorization flow request."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, str] | None = None
+    ) -> ConfigFlowResult:
+        """Handle user's reauth credentials."""
+        return await self._async_step(
+            step_id="reauth_confirm",
+            schema=STEP_USER_DATA_SCHEMA,
+            user_input=user_input,
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -48,16 +62,12 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
         suggested_values: dict[str, Any] | None = None,
     ) -> ConfigFlowResult:
         """Handle step setup."""
-        if abort := self._abort_if_configured(user_input):
-            return abort
-
         errors = {}
 
         if user_input is not None:
             if not (errors := await self.validate_client(user_input)):
                 data = {
-                    CONF_EMAIL: user_input[CONF_EMAIL],
-                    CONF_TOKEN: json.dumps(self.token),
+                    CONF_TOKEN: json.dumps(self.tokens),
                 }
                 if existing_entry := self.hass.config_entries.async_get_entry(
                     self.context.get("entry_id")
@@ -68,7 +78,7 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.hass.config_entries.async_reload(existing_entry.entry_id)
                     return self.async_abort(reason="reconfigure_successful")
 
-                return self.async_create_entry(title=user_input[CONF_EMAIL], data=data)
+                return self.async_create_entry(data=data)
 
         return self.async_show_form(
             step_id=step_id,
@@ -81,10 +91,10 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
         try:
             client = Planta(session=async_get_clientsession(self.hass))
-            await client.login(user_input[CONF_EMAIL], user_input[CONF_PASSWORD])
+            await client.authorize(user_input[CONF_CODE])
             if not client.token:
                 errors["base"] = "invalid_auth"
-            self.token = client.token
+            self.tokens = client.token
         except asyncio.TimeoutError:
             errors["base"] = "timeout_connect"
         except ConnectError:
@@ -99,14 +109,3 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
         finally:
             await client.close()
         return errors
-
-    @callback
-    def _abort_if_configured(
-        self, user_input: dict[str, Any] | None
-    ) -> ConfigFlowResult | None:
-        """Abort if configured."""
-        if user_input:
-            for entry in self._async_current_entries():
-                if entry.data[CONF_EMAIL] == user_input[CONF_EMAIL]:
-                    return self.async_abort(reason="already_configured")
-        return None

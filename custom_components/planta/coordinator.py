@@ -10,7 +10,7 @@ import async_timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN
@@ -24,7 +24,7 @@ UPDATE_INTERVAL = timedelta(minutes=5)
 type PlantaConfigEntry = ConfigEntry[PlantaCoordinator]
 
 
-class PlantaCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
+class PlantaCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
     """Planta data update coordinator."""
 
     def __init__(
@@ -43,11 +43,9 @@ class PlantaCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
     def get_plant(self, plant_id: str) -> dict[str, Any] | None:
         """Get a plant by it's id."""
-        if not self.data:
-            return None
-        return next((plant for plant in self.data if plant["id"] == plant_id), None)
+        return self.data.get(plant_id, None) if self.data else None
 
-    async def _async_update_data(self) -> list[dict[str, Any]]:
+    async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Fetch the latest data."""
         try:
             async with async_timeout.timeout(10):
@@ -58,5 +56,11 @@ class PlantaCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             _LOGGER.error(ex)
             raise UpdateFailed("Couldn't read from Planta") from ex
         if data is None:
-            raise ConfigEntryAuthFailed
-        return data.get("plants", [])
+            raise ConfigEntryNotReady
+        return {plant["id"]: plant for plant in data.get("plants", [])}
+
+    async def async_refresh_plant(self, plant_id: str) -> None:
+        """Fetch the latest data for a plant."""
+        if data := await self.client.get_plant(plant_id):
+            self.data[plant_id] = data
+            self.async_update_listeners()

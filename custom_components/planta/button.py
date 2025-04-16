@@ -25,8 +25,8 @@ async def async_setup_entry(
     coordinator: PlantaCoordinator = entry.runtime_data
     async_add_entities(
         [
-            PlantaButtonEntity(coordinator, descriptor, plant["id"])
-            for plant in coordinator.data
+            PlantaButtonEntity(coordinator, descriptor, plant_id)
+            for plant_id, plant in coordinator.data.items()
             for descriptor in BUTTONS
             for action in plant["actions"]
             if action == descriptor.field
@@ -83,4 +83,4 @@ class PlantaButtonEntity(PlantaEntity, ButtonEntity):
             )
 
         await self.coordinator.client.plant_action_complete(self.plant_id, action)
-        await self.coordinator.async_refresh()
+        await self.coordinator.async_refresh_plant(self.plant_id)

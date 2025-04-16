@@ -42,6 +42,6 @@ class PlantaEntity(CoordinatorEntity[PlantaCoordinator]):
         )
 
     @property
-    def plant(self) -> dict[str, Any]:
+    def plant(self) -> dict[str, Any] | None:
         """Get plant data."""
         return self.coordinator.get_plant(self.plant_id)

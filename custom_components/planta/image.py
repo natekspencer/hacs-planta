@@ -21,8 +21,8 @@ async def async_setup_entry(
     coordinator: PlantaCoordinator = entry.runtime_data
     async_add_entities(
         [
-            PlantaImageEntity(coordinator, IMAGE, plant["id"])
-            for plant in coordinator.data
+            PlantaImageEntity(coordinator, IMAGE, plant_id)
+            for plant_id in coordinator.data
         ]
     )
 

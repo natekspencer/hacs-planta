@@ -205,8 +205,8 @@ async def async_setup_entry(
     """Set up Planta sensors using config entry."""
     coordinator: PlantaCoordinator = entry.runtime_data
     async_add_entities(
-        PlantaSensorEntity(coordinator, descriptor, plant["id"])
-        for plant in coordinator.data
+        PlantaSensorEntity(coordinator, descriptor, plant_id)
+        for plant_id in coordinator.data
         for descriptor in DESCRIPTORS
     )
 

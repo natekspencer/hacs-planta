@@ -26,10 +26,8 @@ async def async_setup_entry(
     async_add_entities(
         [
             PlantaButtonEntity(coordinator, descriptor, plant_id)
-            for plant_id, plant in coordinator.data.items()
+            for plant_id in coordinator.data
             for descriptor in BUTTONS
-            for action in plant["actions"]
-            if action == descriptor.field
         ]
     )
 
@@ -74,6 +72,11 @@ class PlantaButtonEntity(PlantaEntity, ButtonEntity):
     """Planta button entity."""
 
     entity_description: PlantaButtonEntityDescription
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Return if the entity should be enabled when first added to the entity registry."""
+        return self.plant["actions"][self.entity_description.field]["next"] is not None
 
     async def async_press(self) -> None:
         """Handle the button press."""

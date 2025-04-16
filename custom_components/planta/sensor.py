@@ -8,6 +8,8 @@ from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any
 
+from stringcase import snakecase
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -28,15 +30,12 @@ PLANT_HEALTH_LIST = ["notset", "poor", "fair", "good", "verygood", "excellent"]
 
 
 def get_plant_action_date(
-    plant: dict[str, Any], action_type: str, last: bool = False
+    plant: dict[str, Any], action_type: str, completed: bool = False
 ) -> datetime | None:
     """Get plant action date."""
-    action = plant.get("actions", {}).get(action_type, {})
-    record = action.get("last" if last else "next") or {}
-    if record_date := (
-        record.get("date") if not last or record.get("action") == "completed" else None
-    ):
-        return datetime.fromisoformat(record_date)
+    action = plant["actions"].get(action_type, {})
+    if record := action.get("completed" if completed else "next"):
+        return datetime.fromisoformat(record["date"])
     return None
 
 
@@ -47,6 +46,16 @@ def time_since_last_completed(plant: dict[str, Any], action_type: str) -> float 
     return None
 
 
+def custom_schedule(plant: dict[str, Any], schedule_type: str) -> dict[str, Any] | None:
+    """Return custom schedule, if any."""
+    if (schedule := plant["plantCare"].get(schedule_type, {})).get("enabled"):
+        return {
+            snakecase(key if key != "enabled" else "custom_schedule"): value
+            for key, value in schedule.items()
+        }
+    return None
+
+
 @dataclass(frozen=True, kw_only=True)
 class PlantaSensorEntityDescription(SensorEntityDescription):
     """Planta sensor entity description."""
@@ -54,9 +63,10 @@ class PlantaSensorEntityDescription(SensorEntityDescription):
     field: str
     is_pot: bool = False
     value_fn: Callable[[dict[str, Any]], datetime | None] | None = None
+    extra_state_attributes_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
-DESCRIPTORS = (
+PLANT_DESCRIPTORS = (
     PlantaSensorEntityDescription(
         key="health",
         field="health",
@@ -65,101 +75,6 @@ DESCRIPTORS = (
         device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
         options=PLANT_HEALTH_LIST,
-    ),
-    PlantaSensorEntityDescription(
-        key="scheduled_cleaning",
-        field="cleaning",
-        translation_key="scheduled_cleaning",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda plant: get_plant_action_date(plant, "cleaning"),
-    ),
-    PlantaSensorEntityDescription(
-        key="scheduled_fertilizing",
-        field="fertilizing",
-        translation_key="scheduled_fertilizing",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda plant: get_plant_action_date(plant, "fertilizing"),
-    ),
-    PlantaSensorEntityDescription(
-        key="last_fertilizing",
-        field="fertilizing",
-        translation_key="last_fertilizing",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda plant: get_plant_action_date(plant, "fertilizing", True),
-    ),
-    PlantaSensorEntityDescription(
-        key="time_since_last_fertilizing",
-        field="fertilizing",
-        translation_key="time_since_last_fertilizing",
-        device_class=SensorDeviceClass.DURATION,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        suggested_unit_of_measurement=UnitOfTime.DAYS,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda plant: time_since_last_completed(plant, "fertilizing"),
-    ),
-    PlantaSensorEntityDescription(
-        key="scheduled_misting",
-        field="misting",
-        translation_key="scheduled_misting",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda plant: get_plant_action_date(plant, "misting"),
-    ),
-    PlantaSensorEntityDescription(
-        key="scheduled_repotting",
-        field="repotting",
-        translation_key="scheduled_repotting",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda plant: get_plant_action_date(plant, "repotting"),
-    ),
-    PlantaSensorEntityDescription(
-        key="last_repotting",
-        field="repotting",
-        translation_key="last_repotting",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda plant: get_plant_action_date(plant, "repotting", True),
-    ),
-    PlantaSensorEntityDescription(
-        key="time_since_last_repotting",
-        field="repotting",
-        translation_key="time_since_last_repotting",
-        device_class=SensorDeviceClass.DURATION,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        suggested_unit_of_measurement=UnitOfTime.DAYS,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda plant: time_since_last_completed(plant, "repotting"),
-    ),
-    PlantaSensorEntityDescription(
-        key="scheduled_watering",
-        field="watering",
-        translation_key="scheduled_watering",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda plant: get_plant_action_date(plant, "watering"),
-    ),
-    PlantaSensorEntityDescription(
-        key="last_watering",
-        field="watering",
-        translation_key="last_watering",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda plant: get_plant_action_date(plant, "watering", True),
-    ),
-    PlantaSensorEntityDescription(
-        key="time_since_last_watering",
-        field="watering",
-        translation_key="time_since_last_watering",
-        device_class=SensorDeviceClass.DURATION,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        suggested_unit_of_measurement=UnitOfTime.DAYS,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda plant: time_since_last_completed(plant, "watering"),
     ),
     PlantaSensorEntityDescription(
         key="size",
@@ -198,6 +113,176 @@ DESCRIPTORS = (
         icon="mdi:pot-outline",
     ),
 )
+ACTION_DESCRIPTORS = (
+    PlantaSensorEntityDescription(
+        key="scheduled_cleaning",
+        field="cleaning",
+        translation_key="scheduled_cleaning",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "cleaning"),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_cleaning",
+        field="cleaning",
+        translation_key="last_cleaning",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "cleaning", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_cleaning",
+        field="cleaning",
+        translation_key="time_since_last_cleaning",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "cleaning"),
+    ),
+    PlantaSensorEntityDescription(
+        key="scheduled_fertilizing",
+        field="fertilizing",
+        translation_key="scheduled_fertilizing",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "fertilizing"),
+        extra_state_attributes_fn=lambda plant: custom_schedule(
+            plant, "customFertilizing"
+        ),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_fertilizing",
+        field="fertilizing",
+        translation_key="last_fertilizing",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "fertilizing", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_fertilizing",
+        field="fertilizing",
+        translation_key="time_since_last_fertilizing",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "fertilizing"),
+    ),
+    PlantaSensorEntityDescription(
+        key="scheduled_misting",
+        field="misting",
+        translation_key="scheduled_misting",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "misting"),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_misting",
+        field="misting",
+        translation_key="last_misting",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "misting", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_misting",
+        field="misting",
+        translation_key="time_since_last_misting",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "misting"),
+    ),
+    PlantaSensorEntityDescription(
+        key="scheduled_progress_update",
+        field="progressUpdate",
+        translation_key="scheduled_progress_update",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "progressUpdate"),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_progress_update",
+        field="progressUpdate",
+        translation_key="last_progress_update",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "progressUpdate", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_progress_update",
+        field="progressUpdate",
+        translation_key="time_since_last_progress_update",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "progressUpdate"),
+    ),
+    PlantaSensorEntityDescription(
+        key="scheduled_repotting",
+        field="repotting",
+        translation_key="scheduled_repotting",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "repotting"),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_repotting",
+        field="repotting",
+        translation_key="last_repotting",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "repotting", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_repotting",
+        field="repotting",
+        translation_key="time_since_last_repotting",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "repotting"),
+    ),
+    PlantaSensorEntityDescription(
+        key="scheduled_watering",
+        field="watering",
+        translation_key="scheduled_watering",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda plant: get_plant_action_date(plant, "watering"),
+        extra_state_attributes_fn=lambda plant: custom_schedule(
+            plant, "customWatering"
+        ),
+    ),
+    PlantaSensorEntityDescription(
+        key="last_watering",
+        field="watering",
+        translation_key="last_watering",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda plant: get_plant_action_date(plant, "watering", True),
+    ),
+    PlantaSensorEntityDescription(
+        key="time_since_last_watering",
+        field="watering",
+        translation_key="time_since_last_watering",
+        device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.DAYS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda plant: time_since_last_completed(plant, "watering"),
+    ),
+)
 
 
 async def async_setup_entry(
@@ -207,11 +292,18 @@ async def async_setup_entry(
 ) -> None:
     """Set up Planta sensors using config entry."""
     coordinator: PlantaCoordinator = entry.runtime_data
-    async_add_entities(
+    entities = [
         PlantaSensorEntity(coordinator, descriptor, plant_id)
         for plant_id in coordinator.data
-        for descriptor in DESCRIPTORS
+        for descriptor in PLANT_DESCRIPTORS
+    ]
+    entities.extend(
+        PlantaSensorEntity(coordinator, descriptor, plant_id)
+        for plant_id, plant in coordinator.data.items()
+        for descriptor in ACTION_DESCRIPTORS
+        if plant["actions"][descriptor.field]["next"]
     )
+    async_add_entities(entities)
 
 
 class PlantaSensorEntity(PlantaEntity, SensorEntity):
@@ -226,6 +318,13 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
             self.entity_description.entity_registry_enabled_default
             and self.native_value is not None
         )
+
+    @property
+    def extra_state_attributes(self):
+        """Return entity specific state attributes."""
+        if _fn := self.entity_description.extra_state_attributes_fn:
+            return _fn(self.plant) or super().extra_state_attributes
+        return super().extra_state_attributes
 
     @property
     def native_value(self) -> int | str | datetime | None:

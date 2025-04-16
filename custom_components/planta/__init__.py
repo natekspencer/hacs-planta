@@ -28,20 +28,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlantaConfigEntry) -> bo
     """Set up Planta from a config entry."""
 
     @callback
-    def async_save_refresh_token(refresh_token: dict[str, str]) -> None:
-        """Save a refresh token to the config entry data."""
-        _LOGGER.debug("Saving new refresh token to HASS storage")
+    def async_save_tokens(tokens: dict[str, str]) -> None:
+        """Save tokens to the config entry data."""
+        _LOGGER.debug("Saving new tokens to HASS storage")
         hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_TOKEN: json.dumps(refresh_token)}
+            entry, data={**entry.data, CONF_TOKEN: json.dumps(tokens)}
         )
 
-    if isinstance(token := entry.data[CONF_TOKEN], str):
-        token = json.loads(token)
+    if isinstance(tokens := entry.data[CONF_TOKEN], str):
+        tokens = json.loads(tokens)
 
     client = Planta(
         session=async_get_clientsession(hass),
-        token=token,
-        refresh_token_callback=async_save_refresh_token,
+        tokens=tokens,
+        refresh_tokens_callback=async_save_tokens,
     )
     coordinator = PlantaCoordinator(hass, entry, client)
 

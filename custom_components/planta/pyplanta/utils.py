@@ -18,11 +18,3 @@ def encode(value: str | dict) -> str:
     if isinstance(value, dict):
         value = json.dumps(value)
     return b64encode(value.encode(ENCODING)).decode(ENCODING)
-
-
-class PlantaError(Exception):
-    """Generic Planta error."""
-
-
-class UnauthorizedError(PlantaError):
-    """Unauthorized error."""

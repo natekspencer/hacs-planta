@@ -15,7 +15,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN
 from .pyplanta import Planta
-from .pyplanta.utils import UnauthorizedError
+from .pyplanta.exceptions import UnauthorizedError
 
 _LOGGER = logging.getLogger(__name__)
 

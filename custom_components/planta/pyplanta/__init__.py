@@ -7,7 +7,7 @@ from typing import Any, Callable, Final
 from aiohttp import ClientSession
 import jwt
 
-from .utils import UnauthorizedError
+from .exceptions import PlantaError, UnauthorizedError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,62 +18,64 @@ class Planta:
     """Planta API client class."""
 
     _lock = Lock()
-    _token: dict[str, str] | None = None
-    _refresh_token_callback: Callable[[dict[str, str]], None] | None = None
+    _tokens: dict[str, str] | None = None
+    _refresh_tokens_callback: Callable[[dict[str, str]], None] | None = None
 
     def __init__(
         self,
         *,
         session: ClientSession | None = None,
-        token: dict[str, str] | None = None,
-        refresh_token_callback: Callable[[dict[str, str]], None] | None = None,
+        tokens: dict[str, str] | None = None,
+        refresh_tokens_callback: Callable[[dict[str, str]], None] | None = None,
     ) -> None:
         """Initialize the client."""
         self._client = session if session else ClientSession()
         self._should_close = session is None
         self._headers: dict[str, str] = {}
-        if token and "accessToken" in token:
-            self._token = token
-            self._headers["Authorization"] = f"Bearer {token['accessToken']}"
-        if refresh_token_callback:
-            self._refresh_token_callback = refresh_token_callback
+        if tokens and "accessToken" in tokens:
+            self._tokens = tokens
+            self._headers["Authorization"] = f"Bearer {tokens['accessToken']}"
+        if refresh_tokens_callback:
+            self._refresh_tokens_callback = refresh_tokens_callback
 
     @property
-    def token(self) -> dict[str, str] | None:
-        """Return the token, if any."""
-        return self._token
+    def tokens(self) -> dict[str, str] | None:
+        """Return the tokens, if any."""
+        return self._tokens
 
     async def authorize(self, code: str) -> None:
-        """Exchange OTP for a token and refresh token."""
+        """Exchange OTP for an access and refresh token."""
         result = await self._request(
             "POST", f"{API_V1_ENDPOINT}/auth/authorize", json={"code": code}
         )
-        self._token = tokens = result["data"]
+        self._tokens = tokens = result["data"]
         self._headers["Authorization"] = (
             f"{tokens['tokenType']} {tokens['accessToken']}"
         )
 
-    async def refresh_tokens(self) -> None:
+    async def refresh_tokens(self, *, force: bool = False) -> None:
         """Refresh the tokens."""
-        if not self._token:
-            raise UnauthorizedError("App has not yet been authorized.")
+        if not self._tokens:
+            raise UnauthorizedError("App has not yet been authorized")
+        if "refreshToken" not in self._tokens:
+            raise PlantaError("Unable to refresh tokens - refresh token is missing")
         async with self._lock:
-            if self._is_token_valid():
+            if not force and self._is_access_token_valid():
                 return
             if "Authorization" in self._headers:
                 self._headers.pop("Authorization")
             result = await self._request(
                 "POST",
                 f"{API_V1_ENDPOINT}/auth/refreshToken",
-                json={"refreshToken": self._token["refreshToken"]},
+                json={"refreshToken": self._tokens["refreshToken"]},
             )
-            self._token = tokens = result["data"]
+            self._tokens = tokens = result["data"]
             self._headers["Authorization"] = (
                 f"{tokens['tokenType']} {tokens['accessToken']}"
             )
-            if self._refresh_token_callback:
+            if self._refresh_tokens_callback:
                 try:
-                    self._refresh_token_callback(self.token)
+                    self._refresh_tokens_callback(self.tokens)
                 except Exception as ex:
                     _LOGGER.error(ex)
 
@@ -129,13 +131,13 @@ class Planta:
         )
         return result == 204
 
-    def _is_token_valid(self) -> bool:
-        """Return `True` if the token is still valid."""
-        if self.token is None:
+    def _is_access_token_valid(self) -> bool:
+        """Return `True` if the access token is still valid."""
+        if self.tokens is None:
             return False
         try:
             jwt.decode(
-                self.token["accessToken"],
+                self.tokens["accessToken"],
                 options={"verify_signature": False, "verify_exp": True},
                 leeway=-30,
             )
@@ -147,7 +149,7 @@ class Planta:
         self, method: str, url: str, **kwargs: Any
     ) -> dict | list[dict] | int | None:
         """Make a request."""
-        if "authorize" not in url and not self._is_token_valid():
+        if "authorize" not in url and not self._is_access_token_valid():
             await self.refresh_tokens()
 
         _LOGGER.debug("Making %s request to %s", method, url)
@@ -155,9 +157,22 @@ class Planta:
         async with self._client.request(
             method, url, headers=self._headers, **kwargs
         ) as resp:
-            resp.raise_for_status()
+            if "application/json" in resp.headers.get("Content-Type", ""):
+                data = await resp.json()
+            else:
+                data = {"raw": await resp.text()}
+
+            if resp.status >= 400:
+                message = data.get("message", f"HTTP {resp.status} Error")
+                error_type = data.get("errorType", "unknown")
+
+                if resp.status == 401 or error_type == "unauthorized":
+                    raise UnauthorizedError(message)
+                else:
+                    raise PlantaError(f"{error_type}: {message}")
+
             if not resp.content_length:
                 return resp.status
-            data = await resp.json()
+
             _LOGGER.debug("Received %s response from %s", resp.status, url)
             return data  # type: ignore

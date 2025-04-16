@@ -8,8 +8,7 @@ import json
 import logging
 from typing import Any
 
-from aiohttp import ClientConnectorError
-from httpx import ConnectError, HTTPStatusError
+from httpx import HTTPStatusError
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
@@ -18,6 +17,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 from .pyplanta import Planta
+from .pyplanta.exceptions import PlantaError, UnauthorizedError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.hass.config_entries.async_reload(existing_entry.entry_id)
                     return self.async_abort(reason="reconfigure_successful")
 
-                return self.async_create_entry(data=data)
+                return self.async_create_entry(title="Planta", data=data)
 
         return self.async_show_form(
             step_id=step_id,
@@ -92,17 +92,15 @@ class PlantaConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             client = Planta(session=async_get_clientsession(self.hass))
             await client.authorize(user_input[CONF_CODE])
-            if not client.token:
+            if not client.tokens:
                 errors["base"] = "invalid_auth"
-            self.tokens = client.token
+            self.tokens = client.tokens
+        except UnauthorizedError:
+            errors["base"] = "invalid_auth"
+        except (PlantaError, HTTPStatusError) as err:
+            errors["base"] = str(err)
         except asyncio.TimeoutError:
             errors["base"] = "timeout_connect"
-        except ConnectError:
-            errors["base"] = "invalid_host"
-        except ClientConnectorError:
-            errors["base"] = "invalid_host"
-        except HTTPStatusError as err:
-            errors["base"] = str(err)
         except Exception as ex:  # pylint: disable=broad-except
             _LOGGER.error(ex)
             errors["base"] = "unknown"

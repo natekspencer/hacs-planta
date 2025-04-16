@@ -94,6 +94,7 @@ DESCRIPTORS = (
         translation_key="time_since_last_fertilizing",
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         state_class=SensorStateClass.MEASUREMENT,
@@ -127,6 +128,7 @@ DESCRIPTORS = (
         translation_key="time_since_last_repotting",
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         state_class=SensorStateClass.MEASUREMENT,
@@ -153,6 +155,7 @@ DESCRIPTORS = (
         translation_key="time_since_last_watering",
         device_class=SensorDeviceClass.DURATION,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         state_class=SensorStateClass.MEASUREMENT,
@@ -219,7 +222,10 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
     @property
     def entity_registry_enabled_default(self) -> bool:
         """Return if the entity should be enabled when first added to the entity registry."""
-        return self.native_value is not None
+        return (
+            self.entity_description.entity_registry_enabled_default
+            and self.native_value is not None
+        )
 
     @property
     def native_value(self) -> int | str | datetime | None:

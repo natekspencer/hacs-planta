@@ -149,7 +149,7 @@ class Planta:
         self, method: str, url: str, **kwargs: Any
     ) -> dict | list[dict] | int | None:
         """Make a request."""
-        if "authorize" not in url and not self._is_access_token_valid():
+        if "/auth/" not in url and not self._is_access_token_valid():
             await self.refresh_tokens()
 
         _LOGGER.debug("Making %s request to %s", method, url)

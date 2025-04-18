@@ -12,7 +12,11 @@
 
 # Planta for Home Assistant
 
-Home Assistant integration for the Planta plant care app.
+Integrate the Planta plant care app with Home Assistant to sync your plant data and unlock powerful automations and insights.
+
+Keep track of watering, fertilizing, and more — and even flash a smart light when your Monstera needs some love! 🌿
+
+_Note_: A Planta premium subscription is required to access the API features used by this integration.
 
 # Installation
 
@@ -43,7 +47,7 @@ While the manual installation above seems like less steps, it's important to not
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=planta)
 
-There is a config flow for this Planta integration. After installing the custom component, use the convenient My Home Assistant link above.
+There is a config flow for this integration. After installing the custom component, use the convenient My Home Assistant link above.
 
 Alternatively:
 
@@ -58,6 +62,6 @@ Alternatively:
 
 I'm not employed by Planta, and provide this custom component purely for your own enjoyment and home automation needs.
 
-If you already own a Planta, found this integration useful and want to donate, consider [sponsoring me on GitHub](https://github.com/sponsors/natekspencer) or buying me a coffee ☕ (or beer 🍺) instead by using the link below:
+If you found this integration useful and want to donate, consider [sponsoring me on GitHub](https://github.com/sponsors/natekspencer) or buying me a coffee ☕ (or beer 🍺) by using the link below:
 
 <a href='https://ko-fi.com/Y8Y57F59S' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>

@@ -7,7 +7,7 @@ import logging
 
 from homeassistant.const import CONF_TOKEN, Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
@@ -28,32 +28,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: PlantaConfigEntry) -> bo
     """Set up Planta from a config entry."""
 
     @callback
-    def async_save_refresh_token(refresh_token: dict[str, str]) -> None:
-        """Save a refresh token to the config entry data."""
-        _LOGGER.debug("Saving new refresh token to HASS storage")
+    def async_save_tokens(tokens: dict[str, str]) -> None:
+        """Save tokens to the config entry data."""
+        _LOGGER.debug("Saving new tokens to HASS storage")
         hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_TOKEN: json.dumps(refresh_token)}
+            entry, data={**entry.data, CONF_TOKEN: json.dumps(tokens)}
         )
 
-    if isinstance(token := entry.data[CONF_TOKEN], str):
-        token = json.loads(token)
+    if isinstance(tokens := entry.data[CONF_TOKEN], str):
+        tokens = json.loads(tokens)
 
     client = Planta(
         session=async_get_clientsession(hass),
-        token=token,
-        refresh_token_callback=async_save_refresh_token,
+        tokens=tokens,
+        refresh_tokens_callback=async_save_tokens,
     )
     coordinator = PlantaCoordinator(hass, entry, client)
 
     try:
         await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryAuthFailed:
+        raise
     except Exception as ex:
         _LOGGER.exception(ex)
 
     if not coordinator.data:
         raise ConfigEntryNotReady
 
-    coordinator.generate_plant_coordinators()
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

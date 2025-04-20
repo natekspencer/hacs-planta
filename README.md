@@ -1,5 +1,6 @@
 [![Release](https://img.shields.io/github/v/release/natekspencer/hacs-planta?style=for-the-badge)](https://github.com/natekspencer/hacs-planta/releases)
-[![Buy Me A Coffee/Beer](https://img.shields.io/badge/Buy_Me_A_☕/🍺-F16061?style=for-the-badge&logo=ko-fi&logoColor=white&labelColor=grey)](https://ko-fi.com/natekspencer)
+[![Buy Me A Coffee/Beer](https://img.shields.io/badge/Buy_Me_A_☕/🍺-F16061?style=for-the-badge&logo=ko-fi&logoColor=white&labelColor=grey)][ko-fi]
+[![Sponsor me on GitHub](https://img.shields.io/badge/Sponsor_me_on_GitHub-yellow?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=grey)][github-sponsor]
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 
 ![Downloads](https://img.shields.io/github/downloads/natekspencer/hacs-planta/total?style=flat-square)
@@ -12,7 +13,11 @@
 
 # Planta for Home Assistant
 
-Home Assistant integration for the Planta plant care app.
+Integrate the Planta plant care app with Home Assistant to sync your plant data and unlock powerful automations and insights.
+
+Keep track of watering, fertilizing, and more — and even flash a smart light when your Monstera needs some love! 🌿
+
+_Note_: A Planta premium subscription is required to access the API features used by this integration.
 
 # Installation
 
@@ -43,7 +48,7 @@ While the manual installation above seems like less steps, it's important to not
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=planta)
 
-There is a config flow for this Planta integration. After installing the custom component, use the convenient My Home Assistant link above.
+There is a config flow for this integration. After installing the custom component, use the convenient My Home Assistant link above.
 
 Alternatively:
 
@@ -56,8 +61,13 @@ Alternatively:
 
 ## Support Me
 
-I'm not employed by Planta, and provide this custom component purely for your own enjoyment and home automation needs.
+While I'm not employed by Planta, I collaborated closely with their team to provide input on the necessary data and structure for this integration and assist with testing to help shape their public API. I’ll continue to work with them to ensure ongoing improvements as needed. That said, I provide this custom component for your enjoyment and home automation needs, as-is, and without guarantees.
 
-If you already own a Planta, found this integration useful and want to donate, consider [sponsoring me on GitHub](https://github.com/sponsors/natekspencer) or buying me a coffee ☕ (or beer 🍺) instead by using the link below:
+If you run into any issues, feel free to open an issue on GitHub, and I’ll do my best to assist!
 
-<a href='https://ko-fi.com/Y8Y57F59S' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+If you found this integration useful and want to donate, consider [sponsoring me on GitHub][github-sponsor] or buying me a coffee ☕ (or beer 🍺) by using the link below:
+
+[![Support me on ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)][ko-fi]
+
+[github-sponsor]: https://github.com/sponsors/natekspencer
+[ko-fi]: https://ko-fi.com/natekspencer

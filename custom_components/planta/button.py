@@ -56,11 +56,6 @@ BUTTONS = (
         field="misting",
     ),
     PlantaButtonEntityDescription(
-        key="complete_repotting",
-        translation_key="complete_repotting",
-        field="repotting",
-    ),
-    PlantaButtonEntityDescription(
         key="complete_watering",
         translation_key="complete_watering",
         field="watering",

@@ -76,6 +76,6 @@ async def async_remove_config_entry_device(
         identifier
         for identifier in device_entry.identifiers
         if identifier[0] == DOMAIN
-        for plant in entry.runtime_data.data
-        if plant["id"] == identifier[1]
+        for plant_id in entry.runtime_data.data
+        if plant_id.split(":")[-1] == identifier[1]
     )

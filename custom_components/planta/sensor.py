@@ -29,6 +29,27 @@ _LOGGER = logging.getLogger(__name__)
 PLANT_HEALTH_LIST = ["notset", "poor", "fair", "good", "verygood", "excellent"]
 
 
+def get_last_watering_completed(
+    plant: dict[str, Any], time_since: bool = False
+) -> float | None:
+    """Get the last watering (or liquid fertilizing) completed."""
+    actions = plant.get("actions", {})
+    action_date = max(
+        (
+            datetime.fromisoformat(record["date"])
+            for action_type in ("watering", "fertilizing")
+            if (action := actions.get(action_type))
+            and (record := action.get("completed"))
+            and "date" in record
+            and (action_type != "fertilizing" or record.get("type") == "liquid")
+        ),
+        default=None,
+    )
+    if time_since and action_date:
+        return (datetime.now(timezone.utc) - action_date).total_seconds()
+    return action_date
+
+
 def get_plant_action_date(
     plant: dict[str, Any], action_type: str, completed: bool = False
 ) -> datetime | None:
@@ -268,7 +289,7 @@ ACTION_DESCRIPTORS = (
         translation_key="last_watering",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda plant: get_plant_action_date(plant, "watering", True),
+        value_fn=lambda plant: get_last_watering_completed(plant),
     ),
     PlantaSensorEntityDescription(
         key="time_since_last_watering",
@@ -280,7 +301,7 @@ ACTION_DESCRIPTORS = (
         native_unit_of_measurement=UnitOfTime.SECONDS,
         suggested_unit_of_measurement=UnitOfTime.DAYS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda plant: time_since_last_completed(plant, "watering"),
+        value_fn=lambda plant: get_last_watering_completed(plant, True),
     ),
 )
 

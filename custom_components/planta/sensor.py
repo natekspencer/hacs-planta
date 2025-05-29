@@ -343,7 +343,7 @@ class PlantaSensorEntity(PlantaEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         """Return entity specific state attributes."""
-        if _fn := self.entity_description.extra_state_attributes_fn:
+        if self.plant and (_fn := self.entity_description.extra_state_attributes_fn):
             return _fn(self.plant) or super().extra_state_attributes
         return super().extra_state_attributes
 

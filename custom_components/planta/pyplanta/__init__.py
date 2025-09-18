@@ -129,7 +129,7 @@ class Planta:
             f"{API_V1_ENDPOINT}/addedPlants/{plant_id}/actions/complete",
             json={"actionType": action_type},
         )
-        return result == 204
+        return result["status"] == 204
 
     def _is_access_token_valid(self) -> bool:
         """Return `True` if the access token is still valid."""
@@ -162,6 +162,9 @@ class Planta:
             else:
                 data = {"raw": await resp.text()}
 
+            if "status" not in data:
+                data["status"] = resp.status
+
             if resp.status >= 400:
                 message = data.get("message", f"HTTP {resp.status} Error")
                 error_type = data.get("errorType", "unknown")
@@ -170,9 +173,6 @@ class Planta:
                     raise UnauthorizedError(message)
                 else:
                     raise PlantaError(f"{error_type}: {message}")
-
-            if not resp.content_length:
-                return resp.status
 
             _LOGGER.debug("Received %s response from %s", resp.status, url)
             return data  # type: ignore
